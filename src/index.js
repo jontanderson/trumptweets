@@ -14,11 +14,6 @@ var https = require('https');
 var AlexaSkill = require('./AlexaSkill');
 
 /**
- * URL prefix to download history content from Wikipedia
- */
-var urlPrefix = 'https://en.wikipedia.org/w/api.php?action=query&prop=extracts&format=json&explaintext=&exsectionformat=plain&redirects=&titles=';
-
-/**
  * Variable defining number of events to be read at one time
  */
 var paginationSize = 3;
@@ -29,39 +24,39 @@ var paginationSize = 3;
 var delimiterSize = 2;
 
 /**
- * HistoryBuffSkill is a child of AlexaSkill.
+ * TrumpTweetsSkill is a child of AlexaSkill.
  * To read more about inheritance in JavaScript, see the link below.
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Introduction_to_Object-Oriented_JavaScript#Inheritance
  */
-var HistoryBuffSkill = function() {
+var TrumpTweetsSkill = function() {
     AlexaSkill.call(this, APP_ID);
 };
 
 // Extend AlexaSkill
-HistoryBuffSkill.prototype = Object.create(AlexaSkill.prototype);
-HistoryBuffSkill.prototype.constructor = HistoryBuffSkill;
+TrumpTweetsSkill.prototype = Object.create(AlexaSkill.prototype);
+TrumpTweetsSkill.prototype.constructor = TrumpTweetsSkill;
 
-HistoryBuffSkill.prototype.eventHandlers.onSessionStarted = function (sessionStartedRequest, session) {
-    console.log("HistoryBuffSkill onSessionStarted requestId: " + sessionStartedRequest.requestId
+TrumpTweetsSkill.prototype.eventHandlers.onSessionStarted = function (sessionStartedRequest, session) {
+    console.log("TrumpTweetsSkill onSessionStarted requestId: " + sessionStartedRequest.requestId
         + ", sessionId: " + session.sessionId);
 
     // any session init logic would go here
 };
 
-HistoryBuffSkill.prototype.eventHandlers.onLaunch = function (launchRequest, session, response) {
-    console.log("HistoryBuffSkill onLaunch requestId: " + launchRequest.requestId + ", sessionId: " + session.sessionId);
+TrumpTweetsSkill.prototype.eventHandlers.onLaunch = function (launchRequest, session, response) {
+    console.log("TrumpTweetsSkill onLaunch requestId: " + launchRequest.requestId + ", sessionId: " + session.sessionId);
     getWelcomeResponse(response);
 };
 
-HistoryBuffSkill.prototype.eventHandlers.onSessionEnded = function (sessionEndedRequest, session) {
+TrumpTweetsSkill.prototype.eventHandlers.onSessionEnded = function (sessionEndedRequest, session) {
     console.log("onSessionEnded requestId: " + sessionEndedRequest.requestId
         + ", sessionId: " + session.sessionId);
 
     // any session cleanup logic would go here
 };
 
-HistoryBuffSkill.prototype.intentHandlers = {
+TrumpTweetsSkill.prototype.intentHandlers = {
 
     GetFirstEventIntent: function (intent, session, response) {
         handleFirstEventRequest(intent, session, response);
@@ -72,13 +67,12 @@ HistoryBuffSkill.prototype.intentHandlers = {
     },
 
     HelpIntent: function (intent, session, response) {
-        var speechOutput = "With History Buff, you can get historical events for any day of the year.  " +
-            "For example, you could say today, or August thirtieth, or you can say exit. Now, which day do you want?";
+        var speechOutput = "Go ahead try me.";
         response.ask(speechOutput);
     },
 
     FinishIntent: function (intent, session, response) {
-        var speechOutput = "Goodbye";
+        var speechOutput = "Have a tremendous day!";
         response.tell(speechOutput);
     }
 };
@@ -96,51 +90,19 @@ function getWelcomeResponse(response) {
     // If the user either does not reply to the welcome message or says something that is not
     // understood, they will be prompted again with this text.
 
-    response.askWithCard(speechOutput, repromptText, cardTitle, speechOutput);
+    response.ask(speechOutput);
 }
 
 /**
  * Gets a poster prepares the speech to reply to the user.
  */
 function handleFirstEventRequest(intent, session, response) {
-    var daySlot = intent.slots.day;
-    var repromptText = "With History Buff, you can get historical events for any day of the year.  For example, you could say today, or August thirtieth. Now, which day do you want?";
-    var monthNames = ["January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-    ];
     var sessionAttributes = {};
     // Read the first 3 events, then set the count to 3
     sessionAttributes.index = paginationSize;
-    var date = "";
-
-    // If the user provides a date, then use that, otherwise use today
-    // The date is in server time, not in the user's time zone. So "today" for the user may actually be tomorrow
-    if (daySlot && daySlot.value) {
-        date = new Date(daySlot.value);
-    } else {
-        date = new Date();
-    }
-
-    var content = "";
-    prefixContent = "For " + monthNames[date.getMonth()] + " " + date.getDate() + ", ";
-    var cardTitle = "Events on " + monthNames[date.getMonth()] + " " + date.getDate();
-
-    getJsonEventsFromWikipedia(monthNames[date.getMonth()], date.getDate(), function (events) {
-        var speechText = "";
-        sessionAttributes.text = events;
-        session.attributes = sessionAttributes;
-        if (events.length == 0) {
-            speechText = "There is a problem connecting to Wikipedia at this time. Please try again later.";
-            response.tell(speechText);
-        } else {
-            for (i = 0; i < paginationSize; i++) {
-                speechText = speechText + events[i] + " ";
-            }
-            speechText = speechText + " Wanna go deeper in history?";
-            response.askWithCard(prefixContent + speechText, repromptText, cardTitle, speechText);
-        }
-    });
-}
+    var tweetData = "What a fantastic day here in Mar a Lago.";
+    response.tell(tweetData);
+ }
 
 /**
  * Gets a poster prepares the speech to reply to the user.
@@ -170,59 +132,11 @@ function handleNextEventRequest(intent, session, response) {
     response.askWithCard(speechText, repromptText, cardTitle, speechText);
 }
 
-function getJsonEventsFromWikipedia(day, date, eventCallback) {
-    var url = urlPrefix + day + '_' + date;
-
-    https.get(url, function(res) {
-        var body = '';
-
-        res.on('data', function (chunk) {
-            body += chunk;
-        });
-
-        res.on('end', function () {
-            var stringResult = parseJson(body);
-            eventCallback(stringResult);
-        });
-    }).on('error', function (e) {
-        console.log("Got error: ", e);
-    });
-}
-
-function parseJson(text) {
-    // sizeOf (/nEvents/n) is 10
-    var text = text.substring(text.indexOf("\\nEvents\\n")+10, text.indexOf("\\n\\n\\nBirths"));
-    var retArr = [];
-    if (text.length == 0) {
-        return retArr;
-    }
-    var retString = "";
-    startIndex = 0;
-    while(true) {
-        endIndex = text.indexOf("\\n", startIndex+delimiterSize);
-        var eventText = (endIndex == -1 ? text.substring(startIndex) : text.substring(startIndex, endIndex));
-        // replace dashes returned in text from Wikipedia's API
-        eventText = eventText.replace(/\\u2013\s*/g, '');
-        // add comma after year so Alexa pauses before continuing with the sentence
-        eventText = eventText.replace(/(^\d+)/,'$1,');
-        eventText = 'In ' + eventText;
-        startIndex = endIndex+delimiterSize;
-        retArr.push(eventText);
-        if (endIndex == -1) {
-            break;
-        }
-    }
-    if (retString != "") {
-        retArr.push(retString);
-    }
-    retArr.reverse();
-    return retArr;
-}
 
 // Create the handler that responds to the Alexa Request.
 exports.handler = function (event, context) {
     // Create an instance of the HistoryBuff Skill.
-    var skill = new HistoryBuffSkill();
+    var skill = new TrumpTweetsSkill();
     skill.execute(event, context);
 };
 
