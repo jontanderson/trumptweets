@@ -2,12 +2,7 @@
   "intents": [
     {
       "intent": "GetFirstEventIntent",
-      "slots": [
-        {
-          "name": "day",
-          "type": "DATE"
-        }
-      ]
+      "slots": []
     },
     {
       "intent": "GetNextEventIntent",
